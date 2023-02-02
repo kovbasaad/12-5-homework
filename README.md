@@ -39,7 +39,7 @@ where date(p.payment_date) = '2005-07-30' and p.payment_date = r.rental_date and
 ```
 
 - перечислите узкие места:
-  поиск выполняется по всем данным многих таблиц
+  поиск выполняется по всем данным многих таблиц, обращение к таблицам, данные из которых не используются в запросе
 - оптимизируйте запрос: внесите корректировки по использованию операторов, при необходимости добавьте индексы.
 
 ```sql
@@ -47,28 +47,22 @@ select distinct concat(c.last_name, ' ', c.first_name), sum(p.amount) over (part
 from payment p 
 join rental r on r.rental_id = p.rental_id 
 join customer c on c.customer_id = p.customer_id 
-join inventory i on i.inventory_id = r.inventory_id 
-join film f on f.film_id = i.film_id 
-group by c.customer_id, f.title, p.amount, p.payment_date
+group by c.customer_id, p.amount, p.payment_date
 having date(p.payment_date) = '2005-07-30';
 ```
 
 ```sql
--> Limit: 200 row(s)  (cost=0.00..0.00 rows=0) (actual time=531.502..531.540 rows=200 loops=1)
-    -> Table scan on <temporary>  (cost=2.50..2.50 rows=0) (actual time=531.501..531.529 rows=200 loops=1)
-        -> Temporary table with deduplication  (cost=0.00..0.00 rows=0) (actual time=531.499..531.499 rows=391 loops=1)
-            -> Window aggregate with buffering: sum(payment.amount) OVER (PARTITION BY c.customer_id )   (actual time=519.069..531.025 rows=634 loops=1)
-                -> Filter: (cast(p.payment_date as date) = '2005-07-30')  (actual time=518.989..522.957 rows=634 loops=1)
-                    -> Sort: c.customer_id  (actual time=518.976..521.523 rows=16044 loops=1)
-                        -> Table scan on <temporary>  (cost=26401.80..26610.05 rows=16462) (actual time=476.572..479.410 rows=16044 loops=1)
-                            -> Temporary table with deduplication  (cost=26401.79..26401.79 rows=16462) (actual time=476.568..476.568 rows=16044 loops=1)
-                                -> Nested loop inner join  (cost=24755.59 rows=16462) (actual time=0.103..376.041 rows=16044 loops=1)
-                                    -> Nested loop inner join  (cost=18993.89 rows=16462) (actual time=0.097..288.098 rows=16044 loops=1)
-                                        -> Nested loop inner join  (cost=13232.20 rows=16419) (actual time=0.078..78.325 rows=16044 loops=1)
-                                            -> Nested loop inner join  (cost=7485.55 rows=16419) (actual time=0.071..61.759 rows=16044 loops=1)
-                                                -> Covering index scan on r using idx_fk_inventory_id  (cost=1738.90 rows=16419) (actual time=0.054..24.903 rows=16044 loops=1)
-                                                -> Single-row index lookup on i using PRIMARY (inventory_id=r.inventory_id)  (cost=0.25 rows=1) (actual time=0.002..0.002 rows=1 loops=16044)
-                                            -> Single-row index lookup on f using PRIMARY (film_id=i.film_id)  (cost=0.25 rows=1) (actual time=0.001..0.001 rows=1 loops=16044)
-                                        -> Index lookup on p using fk_payment_rental (rental_id=r.rental_id)  (cost=0.25 rows=1) (actual time=0.010..0.013 rows=1 loops=16044)
-                                    -> Single-row index lookup on c using PRIMARY (customer_id=p.customer_id)  (cost=0.25 rows=1) (actual time=0.005..0.005 rows=1 loops=16044)
+-> Limit: 200 row(s)  (cost=0.00..0.00 rows=0) (actual time=500.656..500.692 rows=200 loops=1)
+    -> Table scan on <temporary>  (cost=2.50..2.50 rows=0) (actual time=500.654..500.682 rows=200 loops=1)
+        -> Temporary table with deduplication  (cost=0.00..0.00 rows=0) (actual time=500.652..500.652 rows=391 loops=1)
+            -> Window aggregate with buffering: sum(payment.amount) OVER (PARTITION BY c.customer_id )   (actual time=487.193..500.169 rows=634 loops=1)
+                -> Filter: (cast(p.payment_date as date) = '2005-07-30')  (actual time=487.121..497.863 rows=634 loops=1)
+                    -> Sort: c.customer_id  (actual time=487.107..496.357 rows=16043 loops=1)
+                        -> Table scan on <temporary>  (cost=14908.50..15116.75 rows=16462) (actual time=468.847..470.971 rows=16043 loops=1)
+                            -> Temporary table with deduplication  (cost=14908.49..14908.49 rows=16462) (actual time=468.844..468.844 rows=16043 loops=1)
+                                -> Nested loop inner join  (cost=13262.29 rows=16462) (actual time=0.080..384.484 rows=16044 loops=1)
+                                    -> Nested loop inner join  (cost=7500.59 rows=16462) (actual time=0.071..243.558 rows=16044 loops=1)
+                                        -> Covering index scan on r using idx_fk_staff_id  (cost=1738.90 rows=16419) (actual time=0.043..15.446 rows=16044 loops=1)
+                                        -> Index lookup on p using fk_payment_rental (rental_id=r.rental_id)  (cost=0.25 rows=1) (actual time=0.009..0.013 rows=1 loops=16044)
+                                    -> Single-row index lookup on c using PRIMARY (customer_id=p.customer_id)  (cost=0.25 rows=1) (actual time=0.009..0.009 rows=1 loops=16044)
 ```
